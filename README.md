@@ -93,6 +93,44 @@ console.log(result);
    pnpm tsx src/example.ts
    ```
 
+### Tool Calling Workflow
+
+The project also includes a tool calling workflow example (`src/tool-workflow.ts`) that demonstrates:
+
+- Creating structured tools with Zod schemas
+- Binding tools to the LLM model
+- Handling tool calls and executing them
+- Multi-turn conversations with tool results
+
+Available tools:
+
+- **calculator**: Performs arithmetic operations (add, subtract, multiply, divide)
+- **get_weather**: Gets weather information for cities (mock data)
+- **string_operations**: String manipulation (uppercase, lowercase, reverse, length)
+
+#### Usage Example
+
+```typescript
+import { ToolCallingWorkflow } from './tool-workflow.js';
+
+const workflow = new ToolCallingWorkflow({
+  modelName: 'openai/gpt-3.5-turbo',
+  temperature: 0.7,
+});
+
+const result = await workflow.run({
+  question: 'What is 15 multiplied by 23?',
+});
+
+console.log(result); // The model will use the calculator tool
+```
+
+#### Running the Tool Example
+
+```bash
+pnpm tsx src/tool-example.ts
+```
+
 ### Why OpenRouter?
 
 - **Access to 400+ models** from multiple providers (OpenAI, Anthropic, Google, Meta, etc.)
