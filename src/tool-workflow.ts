@@ -157,6 +157,14 @@ export class ToolCallingWorkflow {
         `[Tool Workflow] Model requested ${String(response.tool_calls.length)} tool call(s)`
       );
 
+      // Log details of requested tool calls
+      for (const toolCall of response.tool_calls) {
+        if (toolCall.name && toolCall.id) {
+          const args = toolCall.args as Record<string, unknown>;
+          console.log(`[Tool Workflow]   - ${toolCall.name}(${JSON.stringify(args)})`);
+        }
+      }
+
       // Execute tool calls
       for (const toolCall of response.tool_calls) {
         if (!toolCall.name || !toolCall.id) {

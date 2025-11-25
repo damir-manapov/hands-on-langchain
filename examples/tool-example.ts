@@ -19,6 +19,8 @@ async function main() {
     'What is the weather in London?',
     'Convert "Hello World" to uppercase',
     'What is 100 divided by 4?',
+    'Calculate 25 plus 17, then convert the result to uppercase and tell me its length',
+    'What is the weather in both London and Tokyo, and also calculate 12 multiplied by 8?',
   ];
 
   for (const question of examples) {
