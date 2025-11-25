@@ -4,26 +4,26 @@ import { HumanMessage, ToolMessage, BaseMessage } from '@langchain/core/messages
 import { createOpenRouterModel, type ModelConfig } from './model-utils.js';
 import { getDefaultTools } from './tools/index.js';
 
-export type ToolWorkflowConfig = ModelConfig;
+export type ParallelToolWorkflowConfig = ModelConfig;
 
-export interface ToolWorkflowInput {
+export interface ParallelToolWorkflowInput {
   question: string;
 }
 
-export class ToolCallingWorkflow {
+export class ParallelToolCallingWorkflow {
   private readonly model: ChatOpenAI;
   private readonly tools: DynamicStructuredTool[];
   private readonly toolMap: Map<string, DynamicStructuredTool>;
 
-  constructor(config?: ToolWorkflowConfig) {
+  constructor(config?: ParallelToolWorkflowConfig) {
     this.model = createOpenRouterModel(config);
 
     this.tools = getDefaultTools();
     this.toolMap = new Map(this.tools.map((tool) => [tool.name, tool]));
   }
 
-  async run(input: ToolWorkflowInput): Promise<string> {
-    console.log(`[Tool Workflow] Starting workflow with question: "${input.question}"`);
+  async run(input: ParallelToolWorkflowInput): Promise<string> {
+    console.log(`[Parallel Tool Workflow] Starting workflow with question: "${input.question}"`);
     const modelWithTools = this.model.bindTools(this.tools);
     const messages: BaseMessage[] = [new HumanMessage(input.question)];
 
@@ -31,12 +31,14 @@ export class ToolCallingWorkflow {
     let iteration = 0;
 
     while (iteration < maxIterations) {
-      console.log(`[Tool Workflow] Iteration ${String(iteration + 1)}/${String(maxIterations)}`);
+      console.log(
+        `[Parallel Tool Workflow] Iteration ${String(iteration + 1)}/${String(maxIterations)}`
+      );
       const response = await modelWithTools.invoke(messages);
 
       // If no tool calls, return the response
       if (!response.tool_calls || response.tool_calls.length === 0) {
-        console.log(`[Tool Workflow] No tool calls needed, returning response`);
+        console.log(`[Parallel Tool Workflow] No tool calls needed, returning response`);
         const content = response.content;
         if (typeof content === 'string') {
           return content;
@@ -51,65 +53,76 @@ export class ToolCallingWorkflow {
       messages.push(response);
 
       console.log(
-        `[Tool Workflow] Model requested ${String(response.tool_calls.length)} tool call(s)`
+        `[Parallel Tool Workflow] Model requested ${String(response.tool_calls.length)} tool call(s)`
       );
 
       // Log details of requested tool calls
       for (const toolCall of response.tool_calls) {
         if (toolCall.name && toolCall.id) {
           const args = toolCall.args as Record<string, unknown>;
-          console.log(`[Tool Workflow]   - ${toolCall.name}(${JSON.stringify(args)})`);
+          console.log(`[Parallel Tool Workflow]   - ${toolCall.name}(${JSON.stringify(args)})`);
         }
       }
 
-      // Execute tool calls
-      for (const toolCall of response.tool_calls) {
+      // Execute tool calls in parallel
+      const toolCallPromises = response.tool_calls.map(async (toolCall) => {
         if (!toolCall.name || !toolCall.id) {
-          continue;
+          return null;
         }
 
         const tool = this.toolMap.get(toolCall.name);
         if (!tool) {
-          console.error(`[Tool Workflow] Tool "${toolCall.name}" not found`);
-          messages.push(
-            new ToolMessage({
-              content: `Error: Tool ${toolCall.name} not found`,
-              tool_call_id: toolCall.id,
-            })
-          );
-          continue;
+          console.error(`[Parallel Tool Workflow] Tool "${toolCall.name}" not found`);
+          return {
+            toolCallId: toolCall.id,
+            content: `Error: Tool ${toolCall.name} not found`,
+          };
         }
 
         const args = toolCall.args as Record<string, unknown>;
-        console.log(`[Tool Workflow] Calling tool: ${toolCall.name}`);
-        console.log(`[Tool Workflow] Tool arguments:`, JSON.stringify(args, null, 2));
+        console.log(`[Parallel Tool Workflow] Calling tool: ${toolCall.name}`);
+        console.log(`[Parallel Tool Workflow] Tool arguments:`, JSON.stringify(args, null, 2));
 
         try {
           const toolResult = (await tool.invoke(args)) as string;
-          console.log(`[Tool Workflow] Tool "${toolCall.name}" returned:`, toolResult);
-          messages.push(
-            new ToolMessage({
-              content: toolResult,
-              tool_call_id: toolCall.id,
-            })
-          );
+          console.log(`[Parallel Tool Workflow] Tool "${toolCall.name}" returned:`, toolResult);
+          return {
+            toolCallId: toolCall.id,
+            content: toolResult,
+          };
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`[Tool Workflow] Error executing tool "${toolCall.name}":`, errorMessage);
+          console.error(
+            `[Parallel Tool Workflow] Error executing tool "${toolCall.name}":`,
+            errorMessage
+          );
+          return {
+            toolCallId: toolCall.id,
+            content: `Error executing tool: ${errorMessage}`,
+          };
+        }
+      });
+
+      // Wait for all tool calls to complete in parallel
+      const toolResults = await Promise.all(toolCallPromises);
+
+      // Add all tool results to messages
+      for (const result of toolResults) {
+        if (result) {
           messages.push(
             new ToolMessage({
-              content: `Error executing tool: ${errorMessage}`,
-              tool_call_id: toolCall.id,
+              content: result.content,
+              tool_call_id: result.toolCallId,
             })
           );
         }
       }
 
       iteration++;
-      console.log(`[Tool Workflow] Completed iteration ${String(iteration)}`);
+      console.log(`[Parallel Tool Workflow] Completed iteration ${String(iteration)}`);
     }
 
-    console.warn(`[Tool Workflow] Maximum iterations (${String(maxIterations)}) reached`);
+    console.warn(`[Parallel Tool Workflow] Maximum iterations (${String(maxIterations)}) reached`);
     return 'Maximum iterations reached. Please try a simpler question.';
   }
 

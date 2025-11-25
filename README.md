@@ -131,6 +131,39 @@ console.log(result); // The model will use the calculator tool
 pnpm tsx examples/tool-example.ts
 ```
 
+### Parallel Tool Calling Workflow
+
+The project includes a parallel tool calling workflow (`src/parallel-tool-workflow.ts`) that executes multiple tool calls simultaneously using `Promise.all()`. This can be faster when tools are independent of each other.
+
+**Key differences from sequential workflow:**
+
+- **Parallel execution**: All tool calls execute simultaneously
+- **Better performance**: Faster for independent tools (e.g., multiple API calls)
+- **Same interface**: Same API as sequential workflow, easy to switch
+
+#### Usage Example
+
+```typescript
+import { ParallelToolCallingWorkflow } from './parallel-tool-workflow.js';
+
+const workflow = new ParallelToolCallingWorkflow({
+  modelName: 'openai/gpt-3.5-turbo',
+  temperature: 0.7,
+});
+
+const result = await workflow.run({
+  question: 'What is the weather in both London and Tokyo, and also calculate 12 multiplied by 8?',
+});
+
+console.log(result); // All tools execute in parallel
+```
+
+#### Running the Parallel Tool Example
+
+```bash
+pnpm tsx examples/parallel-tool-example.ts
+```
+
 ### Why OpenRouter?
 
 - **Access to 400+ models** from multiple providers (OpenAI, Anthropic, Google, Meta, etc.)
