@@ -1,4 +1,5 @@
-import { ToolCallingWorkflow } from './tool-workflow.js';
+import { ToolCallingWorkflow } from '../src/tool-workflow.js';
+import { DEFAULT_EXAMPLE_CONFIG, handleExampleError } from './example-utils.js';
 
 /**
  * Example usage of ToolCallingWorkflow
@@ -8,10 +9,7 @@ import { ToolCallingWorkflow } from './tool-workflow.js';
  * export OPENROUTER_API_KEY='your-openrouter-api-key-here'
  */
 async function main() {
-  const workflow = new ToolCallingWorkflow({
-    modelName: 'openai/gpt-3.5-turbo',
-    temperature: 0.7,
-  });
+  const workflow = new ToolCallingWorkflow(DEFAULT_EXAMPLE_CONFIG);
 
   console.log('Available tools:', workflow.getAvailableTools().join(', '));
   console.log('');
@@ -30,7 +28,7 @@ async function main() {
       console.log(`Answer: ${result}`);
       console.log('');
     } catch (error) {
-      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      handleExampleError(error, false); // Don't exit on individual example errors
       console.log('');
     }
   }

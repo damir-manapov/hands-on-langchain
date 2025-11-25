@@ -90,7 +90,7 @@ console.log(result);
    ```
 4. Run the example:
    ```bash
-   pnpm tsx src/example.ts
+   pnpm tsx examples/example.ts
    ```
 
 ### Tool Calling Workflow
@@ -128,7 +128,7 @@ console.log(result); // The model will use the calculator tool
 #### Running the Tool Example
 
 ```bash
-pnpm tsx src/tool-example.ts
+pnpm tsx examples/tool-example.ts
 ```
 
 ### Why OpenRouter?

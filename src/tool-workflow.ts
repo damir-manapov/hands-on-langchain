@@ -4,12 +4,9 @@ import { z } from 'zod';
 import { HumanMessage, ToolMessage, BaseMessage } from '@langchain/core/messages';
 import type { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager';
 import type { RunnableConfig } from '@langchain/core/runnables';
+import { createOpenRouterModel, type ModelConfig } from './model-utils.js';
 
-export interface ToolWorkflowConfig {
-  modelName?: string;
-  temperature?: number;
-  apiKey?: string;
-}
+export type ToolWorkflowConfig = ModelConfig;
 
 export interface ToolWorkflowInput {
   question: string;
@@ -122,27 +119,7 @@ export class ToolCallingWorkflow {
   private readonly toolMap: Map<string, DynamicStructuredTool>;
 
   constructor(config?: ToolWorkflowConfig) {
-    const apiKey = config?.apiKey ?? process.env['OPENROUTER_API_KEY'];
-
-    if (!apiKey) {
-      throw new Error(
-        'OpenRouter API key is required. Set OPENROUTER_API_KEY environment variable or pass apiKey in config.'
-      );
-    }
-
-    this.model = new ChatOpenAI({
-      modelName: config?.modelName ?? 'openai/gpt-3.5-turbo',
-      temperature: config?.temperature ?? 0.7,
-      openAIApiKey: apiKey,
-      configuration: {
-        baseURL: 'https://openrouter.ai/api/v1',
-        defaultHeaders: {
-          'HTTP-Referer': process.env['OPENROUTER_HTTP_REFERER'] ?? '',
-          'X-Title': 'Hands-on LangChain',
-        },
-        apiKey: apiKey,
-      },
-    });
+    this.model = createOpenRouterModel(config);
 
     this.tools = [calculatorTool, weatherTool, stringTool];
     this.toolMap = new Map(this.tools.map((tool) => [tool.name, tool]));

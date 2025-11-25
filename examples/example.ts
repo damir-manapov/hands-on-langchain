@@ -1,4 +1,5 @@
-import { SimpleLangChainWorkflow } from './workflow.js';
+import { SimpleLangChainWorkflow } from '../src/workflow.js';
+import { DEFAULT_EXAMPLE_CONFIG, handleExampleError } from './example-utils.js';
 
 /**
  * Example usage of SimpleLangChainWorkflow
@@ -8,10 +9,7 @@ import { SimpleLangChainWorkflow } from './workflow.js';
  * export OPENROUTER_API_KEY='your-openrouter-api-key-here'
  */
 async function main() {
-  const workflow = new SimpleLangChainWorkflow({
-    modelName: 'openai/gpt-3.5-turbo',
-    temperature: 0.7,
-  });
+  const workflow = new SimpleLangChainWorkflow(DEFAULT_EXAMPLE_CONFIG);
 
   try {
     const result = await workflow.run({
@@ -21,8 +19,7 @@ async function main() {
 
     console.log('Response:', result);
   } catch (error) {
-    console.error('Error running workflow:', error);
-    process.exit(1);
+    handleExampleError(error);
   }
 }
 
